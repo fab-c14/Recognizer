@@ -8,7 +8,7 @@ function App() {
   const [showWarning, setShowWarning] = useState(false);
   const [clarifaiInfo, setClarifaiInfo] = useState(null);
 
-  const onSubmit = async (e) => {
+  const onSubmit = (e) => {
     e.preventDefault();
 
     // Check if the input is a valid image URL
@@ -18,38 +18,49 @@ function App() {
       setImageUrl(inputValue);
       setShowWarning(false);
 
-      // Add your Clarifai API logic here
-      // For example, you can use fetch or axios to make a request to the Clarifai API
-      // Replace 'YOUR_CLARIFAI_API_KEY' with your actual Clarifai API key
-      const clarifaiApiKey = '5e07f757b4af43f0a2ca45d8858efcd5';
-      const clarifaiEndpoint = 'https://api.clarifai.com/v2/models/your-model-id/predict'; // Replace 'your-model-id' with the actual model ID
+      const PAT = '5e07f757b4af43f0a2ca45d8858efcd5';
+   
+      const USER_ID = 'clarifai';       
+      const APP_ID = 'main';
+   
+      const MODEL_ID = 'general-image-recognition';
+      // const MODEL_VERSION_ID = 'aa7f35c01e0642fda5cf400f543e7c40';    
+      const IMAGE_URL = inputValue;
 
-      try {
-        const response = await fetch(clarifaiEndpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${clarifaiApiKey}`,
+
+      const raw = JSON.stringify({
+          "user_app_id": {
+              "user_id": USER_ID,
+              "app_id": APP_ID
           },
-          body: JSON.stringify({
-            inputs: [
+          "inputs": [
               {
-                data: {
-                  image: {
-                    url: inputValue,
-                  },
-                },
-              },
-            ],
-          }),
-        });
+                  "data": {
+                      "image": {
+                          "url": IMAGE_URL
+                      }
+                  }
+              }
+          ]
+      });
 
-        const data = await response.json();
-        setClarifaiInfo(data);
+      const requestOptions = {
+        method: 'POST',
+        headers: {
+            'Accept': 'application/json',
+            'Authorization': 'Key ' + PAT
+        },
+        body: raw
+      };
 
-      } catch (error) {
-        console.error('Error calling Clarifai API:', error);
-      }
+      fetch("https://api.clarifai.com/v2/models/" + MODEL_ID + "/outputs", requestOptions)
+        .then(response => response.text())
+        .then(result =>
+        {
+          let data = JSON.parse(result)
+          setClarifaiInfo(data.outputs[0].data.concepts);
+        })
+        .catch(error => console.log('error', error));
     } else {
       setShowWarning(true);
     }
@@ -82,18 +93,18 @@ function App() {
 
         {imageUrl && (
           <div className="pa2">
-            <img src={imageUrl} alt="Entered" className="br3 ba b--black-10" />
+            <img src={imageUrl} alt="Entered" className="br3 ba b--black-10 w-50 h-50" />
           </div>
         )}
 
         {clarifaiInfo && (
-          <div className="pa2">
+          <div className="pa2 bg-near-white black br3 shadow-5">
             {/* Display Clarifai API information */}
             {/* Adjust this section based on the actual response format */}
-            <p>Concepts detected:</p>
-            <ul>
-              {clarifaiInfo.outputs[0].data.concepts.map((concept) => (
-                <li key={concept.id}>{concept.name} - {concept.value.toFixed(2)}</li>
+            <p className="f4">Concepts detected:</p>
+            <ul className="list pl0">
+              {clarifaiInfo.map((concept) => (
+                <li key={concept.id} className="f5 lh-copy"> "Concept:  "  {concept.name}  --- "Surity : " {(concept.value * 100).toFixed(2)}</li>
               ))}
             </ul>
           </div>
